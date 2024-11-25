@@ -5,14 +5,12 @@
     This file is in the public domain.
 */
 
-#include <math.h>
-
 #define screen_width 320
 #define screen_heigth 240
 #define player_position 8
 #define initial_ball_velocity -1
 #define initial_ball_size 1
-#define initial_paddle_width 8
+#define initial_paddle_heigth 8
 #define player_velocity 5
 #define PI 3.14159
 
@@ -31,7 +29,7 @@ int ball_dx = 0;
 int ball_dy = 0;
 
 /* Size variables */
-int paddle_width = initial_paddle_width;    // Indicates the width of each player paddle.
+int paddle_heigth = initial_paddle_heigth;    // Indicates the width of each player paddle.
 int ball_size = initial_ball_size;  // Indicates the length of a side of the square ball.
 
 /* Score variables */
@@ -52,6 +50,14 @@ Special game modes:
 - REVERSE-PADDLES: The opponents switch controls are reversed when the third switch is used.
 - PRECISION-PONG: Makes the paddles much smaller so that you must be more precise in blocking the ball.
 */
+
+/**
+ * Initializes the builtin timer on the RISV-V board and uses it to keep track of the surpassed time during the game.
+ */
+void initialize_game_time() {
+    // TODO
+    // Configure the game_time variable so that it uses the RISC-V board timer for accurately counting the time and displaying it on the 7-segment displays.
+}
 
 /**
  * Resets the global variables and starts the game from the starting point.
@@ -76,7 +82,7 @@ void initialize_game() {
  * Increments the score of the given player_number and updates the 7-segments display.
  * Parameter: player_number is either 1 or 2. Does nothing otherwise.
  */
-int increment_score(player_number) {
+void increment_score(int player_number) {
     if (player_number == 1) {
         volatile int *displayPointer = (volatile int*) 0x04000050; // Creates a pointer that points to the memory adress where the 7-segment displays are. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the dtek-board.
         player1_score++;
@@ -111,13 +117,54 @@ int increment_score(player_number) {
 }
 
 /**
- * Rotate the ball vector by the given amount of degrees.
- * The method that is used to do this is by multiplying the vector with the rotation matrix for a 2D vector.
+ * Rotate the ball vector by the given amount of degrees counter-clockwise.
+ * There are preset rotation degrees. 15, 30, 45, 60, 75, 90. Automatically rounds to the closest degree.
  */
-void rotate_ball_vector(int degrees) {
+void rotate_ball_vector_counter_clockwise(int degrees) {
+    if (degrees != 15 && degrees != 30 && degrees != 45 && degrees != 60 && degrees != 75 && degrees != 90) {   // If-statement to set the amount of degrees to rotate to one of the preset amount of degrees.
+        if (degrees <= 22) degrees = 15;
+        if (degrees > 22 && degrees <= 37) degrees = 30;
+        if (degrees > 37 && degrees <= 52) degrees = 45;
+        if (degrees > 52 && degrees <= 67) degrees = 60;
+        if (degrees > 67 && degrees <= 82) degrees = 75;
+        if (degrees > 82) degrees = 90;
+    }
+    
+    if (degrees == 15) {
+        ball_dx = ball_dx * 0.965 - ball_dy * 0.262;    // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 0.262 + ball_dy * 0.965;    // Calculate the y-vector after rotation.
+    } else if (degrees == 30) {
+        ball_dx = ball_dx * 0.863 - ball_dy * 0.506;    // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 0.506 + ball_dy * 0.863;    // Calculate the y-vector after rotation.
+    } else if (degrees == 45) {
+        ball_dx = ball_dx * 0.707 - ball_dy * 0.707;    // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 0.707 + ball_dy * 0.707;    // Calculate the y-vector after rotation.
+    } else if (degrees == 60) {
+        ball_dx = ball_dx * 0.498 - ball_dy * 0.867;    // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 0.867 + ball_dy * 0.498;    // Calculate the y-vector after rotation.
+    } else if (degrees == 75) {
+        ball_dx = ball_dx * 0.258 - ball_dy * 0.966;    // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 0.966 + ball_dy * 0.258;    // Calculate the y-vector after rotation.
+    } else if (degrees == 90) {
+        ball_dx = ball_dx * 0 - ball_dy * 1;            // Calculate the x-vector after rotation.
+        ball_dy = ball_dx * 1 + ball_dy * 0;            // Calculate the y-vector after rotation.
+    }
+
+    /* The following method instead uses a method of multyplying the balls velocity vector with the rotational matrix for a 2D vector. It unfortunately requires #include <math.h> to work, which apparently isn't supported on the RISC-V board.
     degrees *= PI / 180;                                        // Convert the amount of degrees to radians.
     ball_dx = ball_dx * cos(degrees) - ball_dy * sin(degrees);  // Calculate the x-vector after rotation.
     ball_dy = ball_dx * sin(degrees) + ball_dy * cos(degrees);  // Calculate the y-vector after rotation.
+    */
+}
+
+/**
+ * Rotate the ball vector by the given amount of degrees clockwise.
+ * There are preset rotation degrees. 15, 30, 45, 60, 75, 90. Automatically rounds to the closest degree.
+ * Makes use of the rotate_ball_vector_counter_clockwise function.
+ */
+void rotate_ball_vector_clockwise(int degrees) {
+    rotate_ball_vector_counter_clockwise(degrees);  // Rotate the ball clockwise.
+    ball_dy = -ball_dy;                             // Reverse the y-vector to make the rotation clockwise instead.
 }
 
 /**
@@ -129,21 +176,21 @@ void handle_collision() {
     } else if (ball_dx == 0) {                          // Case to handle when the ball is moving in a straight line along the y-axis.
         int random = rand() % 2;                        // Generates a random number that is either 0 or 1
         if(random) {
-            rotate_ball_vector(5);                      // Rotate counter-clockwise.
+            rotate_ball_vector_counter_clockwise(5);    // Rotate counter-clockwise.
         } else {
-            rotate_ball_vector(-5);                     // Rotate clockwise.
+            rotate_ball_vector_clockwise(5);            // Rotate clockwise.
         }
     } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
         if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector(90);                     // Rotate 90 degrees counter-clockwise.
+            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
         } else {
-            rotate_ball_vector(-90);                    // Rotate 90 degrees clockwise.
+            rotate_ball_vector_clockwise(90);          // Rotate 90 degrees clockwise.
         }
     } else if (ball_dy <= 0) {                          // Case to handle when the move is moving downwards.
         if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector(-90);                    // Rotate 90 degrees clockwise.
+            rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
         } else {
-            rotate_ball_vector(90);                     // Rotate 90 degrees counter-clockwise.
+            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
         }
     } else {                                            // Else statement to handle the case when something unforeseen happens.
         ball_x = screen_width/2;                        // Reset the ball x-coordinate.
@@ -151,11 +198,12 @@ void handle_collision() {
         ball_dx = initial_ball_velocity;                // Reset the ball velocity along the x-axis.
         ball_dy = 0;                                    // Reset the ball velocity along the y-axis.
     }
+    
     // Should we make it so that the ball rotates a different amount of degrees depending on where it hits the paddles OR the speed of the paddles?
 }
 
 /**
- * Move the ball one step along its velocity vector.
+ * Move the ball one step along its velocity vector and handle potential collisions.
  */
 void move_ball() {
     if(fast_ball) {
@@ -166,8 +214,8 @@ void move_ball() {
     ball_y += ball_dy;  // Move the ball along the y-axis by its corresonding motion vector.
 
     if(ball_y == 0 || ball_y == screen_heigth) handle_collision();                                                                                      // Case when ball collides with the upper or lower wall.
-    if(ball_x == player_position && (ball_y == player1_y + paddle_width/2 || ball_y == player1_y - paddle_width/2)) handle_collision();                 // Case when the ball collides with player 1's paddle.
-    if(ball_x == screen_width - player_position && (ball_y == player2_y + paddle_width/2 || ball_y == player2_y - paddle_width/2)) handle_collision();  // Case when the ball collides with player 2's paddle.
+    if(ball_x == player_position && (ball_y == player1_y + paddle_heigth/2 || ball_y == player1_y - paddle_heigth/2)) handle_collision();                 // Case when the ball collides with player 1's paddle.
+    if(ball_x == screen_width - player_position && (ball_y == player2_y + paddle_heigth/2 || ball_y == player2_y - paddle_heigth/2)) handle_collision();  // Case when the ball collides with player 2's paddle.
     
     if(ball_x == 0) {                       // Case if player 2 scores.
         increment_score(2);                 // Increment the score of player 2.
@@ -185,37 +233,23 @@ void move_ball() {
 
 /**
  * Moves the paddles one step along their motion vectors if the relevant switches are active.
+ * If the paddles leave the screen border, they can only move in the direction that is back towards the screen.
  */
 void move_paddles() {
-    /* Should the following function be removed because it is included in the later ones? */
-    /*
-    if (reverse_paddles1) {         // Checks if the special game mode REVERSE PADDLES is activated for player 1.
-        player1_y -= player1_dy;    // Moves the paddle in the opposite intended direction by its motion vector.
-    } else {
-        player1_y += player1_dy;    // Moves the paddle in the intended direction by its motion vector.
-    }
-
-    if (reverse_paddles2) {         // Checks if the special game mode REVERSE PADDLES is activated for player 2.
-        player2_y -= player2_dy;    // Moves the paddle in the opposite intended direction by its motion vector.
-    } else {
-        player2_y += player2_dy;    // Moves the paddle in the intended direction by its motion vector.
-    }
-    */
-
-    /* The following code ensures that the paddles cannot leave the screen border. */
-    if (player1_y - paddle_width/2 > 0 && player1_y + paddle_width/2 < screen_heigth) {     // Checks that player 1 is within the screen borders.
+    /* For player 1. */
+    if (player1_y - paddle_heigth/2 > 0 && player1_y + paddle_heigth/2 < screen_heigth) {   // Checks that player 1 is within the screen borders.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             player1_y -= player1_dy;                                                        // Moves the paddle in the unintended direction by its motion vector.
         } else {
             player1_y += player1_dy;                                                        // Moves the paddle in the intended direction by its motion vector.
         }
-    } else if (player1_y - paddle_width/2 < 0) {                                            // Checks if the player 1 paddle is below the screen.
+    } else if (player1_y - paddle_heigth/2 < 0) {                                           // Checks if the player 1 paddle is below the screen.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player1_dy < 0) player1_y -= player1_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's upwards.
         } else {
             if (player1_dy > 0) player1_y += player1_dy;                                    // Moves the paddle in the intended direction by its motion vector IF it's upwards.
         }
-    } else if (player1_y + paddle_width/2 > screen_heigth) {                                // Checks if the player 1 paddle is above the screen.
+    } else if (player1_y + paddle_heigth/2 > screen_heigth) {                               // Checks if the player 1 paddle is above the screen.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player1_dy > 0) player1_y -= player1_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's downwards.
         } else {
@@ -223,19 +257,20 @@ void move_paddles() {
         }
     }
 
-    if (player2_y - paddle_width/2 > 0 && player2_y + paddle_width/2 < screen_heigth) {     // Checks that player 2 is within the screen borders.
+    /* For player 2. */
+    if (player2_y - paddle_heigth/2 > 0 && player2_y + paddle_heigth/2 < screen_heigth) {   // Checks that player 2 is within the screen borders.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             player2_y -= player2_dy;                                                        // Moves the paddle in the unintended direction by its motion vector.
         } else {
             player2_y += player2_dy;                                                        // Moves the paddle in the intended direction by its motion vector.
         }
-    } else if (player2_y - paddle_width/2 < 0) {                                            // Checks if the player 2 paddle is below the screen.
+    } else if (player2_y - paddle_heigth/2 < 0) {                                           // Checks if the player 2 paddle is below the screen.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player2_dy < 0) player2_y -= player2_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's upwards.
         } else {
             if (player2_dy > 0) player2_y += player2_dy;                                    // Moves the paddle in the intended direction by its motion vector IF it's upwards.
         }
-    } else if (player2_y + paddle_width/2 > screen_heigth) {                                // Checks if the player 2 paddle is above the screen.
+    } else if (player2_y + paddle_heigth/2 > screen_heigth) {                               // Checks if the player 2 paddle is above the screen.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player2_dy > 0) player2_y -= player2_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's downwards.
         } else {
@@ -245,28 +280,20 @@ void move_paddles() {
 
     /* Below is a more hardcoded solution that just resets the paddle position if it surpasses the screen border. REVERSE PADDLES is not included. */
     /*
-    if (player1_y - paddle_width/2 < 0) {   // Checks that player 1 paddle is within the screen border and resets it otherwise.
-        player1_y = 0 + paddle_width/2;
-    } else if (player1_y + paddle_width/2 > screen_heigth) {
-        player1_y = screen_heigth - paddle_width/2;
+    if (player1_y - paddle_heigth/2 < 0) {   // Checks that player 1 paddle is within the screen border and resets it otherwise.
+        player1_y = 0 + paddle_heigth/2;
+    } else if (player1_y + paddle_heigth/2 > screen_heigth) {
+        player1_y = screen_heigth - paddle_heigth/2;
     }
 
-    if (player2_y - paddle_width/2 < 0) {   // Checks that player 2 paddle is within the screen border and resets it otherwise.
-        player2_y = 0 + paddle_width/2;
-    } else if (player2_y + paddle_width/2 > screen_heigth) {
-        player2_y = screen_heigth - paddle_width/2;
+    if (player2_y - paddle_heigth/2 < 0) {   // Checks that player 2 paddle is within the screen border and resets it otherwise.
+        player2_y = 0 + paddle_heigth/2;
+    } else if (player2_y + paddle_heigth/2 > screen_heigth) {
+        player2_y = screen_heigth - paddle_heigth/2;
     }
     */
 
     // Should we make the paddles accelerate instead of instantaneously reaching a certain speed?
-}
-
-/**
- * Initializes the builtin timer on the RISV-V board and uses it to keep track of the surpassed time during the game.
- */
-void initialize_game_time() {
-    // TODO
-    // Configure the game_time variable so that it uses the RISC-V board timer for accurately counting the time and displaying it on the 7-segment displays.
 }
 
 /**
@@ -337,9 +364,9 @@ void set_special_game_modes () {
     }
 
     if (get_digit(switchValues, 4)) {   // If switch 5 is active, PRECISION-PONG.
-        paddle_width = 2;
+        paddle_heigth = 2;
     } else {
-        paddle_width = initial_paddle_width;
+        paddle_heigth = initial_paddle_heigth;
     }
 
     if (get_digit(switchValues, 5)) {   // If switch 6 is active, FAST-BALL.
@@ -349,7 +376,7 @@ void set_special_game_modes () {
     }
 }
 
-int main(int argc, char const *argv[]) {
+int main() {
     initialize_game();                      // Set up the global variables for the game.
 
     while (1) {                             // Main game loop.
@@ -366,39 +393,24 @@ int main(int argc, char const *argv[]) {
             
             move_ball();                    // Moves the ball and handles collisions.
             
-            move_paddles();                 // Moves the paddles according to the input of the switches.    
+            move_paddles();                 // Moves the paddles according to the input of the switches.   
+
+            // TODO Print everything... 
 
             if (player1_score >= 5) {
-                // TODO "Print game_over, player 1 wins!"
+                // TODO "Print game_over, player 1 wins!"...
                 game_state = 0;
             }
 
             if (player2_score >= 5) {
-                // TODO "Print game_over, player 2 wins!"
+                // TODO "Print game_over, player 2 wins!"...
                 game_state = 0;
             }
         }
 
-        // Delay...
+        // TODO Delay...
 
     }
-    
-    /*
-    Check if game state is active (1). *should we use this inefficent polling method?*
-    Read from the push-button. Run initialize_game() if it is pressed to reset the game.
-    Read from the switches. Update all velocities according to the outer switch values.
-    Update the game mode if indicated by the switches.
-
-    Move the ball. If the ball has the same x-coordinate as either of the left or right walls (goals), increment the relevant player's score and reset the ball.               
-    Move the paddles, according to the switches
-    Check if collision. If true, rotate the ball velocity vector 90 degrees to the right if ball_dy is positive, otherwise rotate it 90 degrees to the left.
-
-    Game over, set game_state to 0
-    Display game over on the screen
-    Restart the game using initialize_game() if the push-button is pressed
-    */
-
-    return 0;
 }
 
 /*
@@ -408,11 +420,7 @@ Notes:
 - If the second switch is active, move the player2 paddle down.
 - If none or both of the first and second switches are active, do nothing.
 - Vice versa for player1 with the tenth and ninth switch.
-
-- Should make a "restart" function which restarts the game. Is called upon when the push button is pressed.
-
-- If the balls coordinates are above or below the screen, bounce. 
-- If the balls coordinates are to the right of the screen, increment player1_score and call the restart function. Vice versa for the left side of the screen.
+- Restart the game by pressing the push-button.
 
 - Should we make it so that the ball turns more sharply when different parts of the paddle are hit?
 - Should we instead make it so that the ball turns more sharply when the paddle hits it with speed?
