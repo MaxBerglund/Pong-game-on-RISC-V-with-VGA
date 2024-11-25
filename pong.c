@@ -1,7 +1,7 @@
 /* 
     pong.c
     By Max Berglund.
-    Last modified: 2024-11-21
+    Last modified: 2024-11-25
     This file is in the public domain.
 */
 
@@ -123,22 +123,34 @@ void rotate_ball_vector(int degrees) {
 /**
  * Handles collisions for the ball by changing its direction.
  */
-void handle_collison() {
-    if (ball_dy == 0) {             // Case to handle when the ball is moving in a straight line along the x-axis.
-        ball_dx = -ball_dx;         // Immediately rotate the ball vector 180 degrees.
-    } else if (ball_dx == 0) {      // Case to handle when the ball is moving in a straight line along the y-axis.
-        int random = rand() % 2;    // Generates a random number that is either 0 or 1
+void handle_collision() {
+    if (ball_dy == 0) {                                 // Case to handle when the ball is moving in a straight line along the x-axis.
+        ball_dx = -ball_dx;                             // Immediately rotate the ball vector 180 degrees.
+    } else if (ball_dx == 0) {                          // Case to handle when the ball is moving in a straight line along the y-axis.
+        int random = rand() % 2;                        // Generates a random number that is either 0 or 1
         if(random) {
-            rotate_ball_vector(5);  // Rotate counter-clockwise.
+            rotate_ball_vector(5);                      // Rotate counter-clockwise.
         } else {
-            rotate_ball_vector(-5); // Rotate clockwise.
+            rotate_ball_vector(-5);                     // Rotate clockwise.
         }
-    } else if (ball_dy >= 0) {      // Case to handle when the move is moving upwards.
-        rotate_ball_vector(90);     // Rotate 90 degrees counter-clockwise.
-    } else if (ball_dy <= 0) {      // Case to handle when the move is moving downwards.
-        rotate_ball_vector(-90);    // Rotate 90 degrees clockwise.
-    } 
-    // Do we need an else statement? Perhaps teleport the ball to the center if something unforeseen happens
+    } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
+        if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
+            rotate_ball_vector(90);                     // Rotate 90 degrees counter-clockwise.
+        } else {
+            rotate_ball_vector(-90);                    // Rotate 90 degrees clockwise.
+        }
+    } else if (ball_dy <= 0) {                          // Case to handle when the move is moving downwards.
+        if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
+            rotate_ball_vector(-90);                    // Rotate 90 degrees clockwise.
+        } else {
+            rotate_ball_vector(90);                     // Rotate 90 degrees counter-clockwise.
+        }
+    } else {                                            // Else statement to handle the case when something unforeseen happens.
+        ball_x = screen_width/2;                        // Reset the ball x-coordinate.
+        ball_y = screen_heigth/2;                       // Reset the ball y-coordinate.
+        ball_dx = initial_ball_velocity;                // Reset the ball velocity along the x-axis.
+        ball_dy = 0;                                    // Reset the ball velocity along the y-axis.
+    }
     // Should we make it so that the ball rotates a different amount of degrees depending on where it hits the paddles OR the speed of the paddles?
 }
 
@@ -156,17 +168,18 @@ void move_ball() {
     if(ball_y == 0 || ball_y == screen_heigth) handle_collision();                                                                                      // Case when ball collides with the upper or lower wall.
     if(ball_x == player_position && (ball_y == player1_y + paddle_width/2 || ball_y == player1_y - paddle_width/2)) handle_collision();                 // Case when the ball collides with player 1's paddle.
     if(ball_x == screen_width - player_position && (ball_y == player2_y + paddle_width/2 || ball_y == player2_y - paddle_width/2)) handle_collision();  // Case when the ball collides with player 2's paddle.
-    if(ball_x == 0) {                   // Case if player 2 scores.
-        increment_score(2);             // Increment the score of player 2.
-        ball_dx = initial_ball_velocity;// Reset the ball velocity.
+    
+    if(ball_x == 0) {                       // Case if player 2 scores.
+        increment_score(2);                 // Increment the score of player 2.
+        ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
-        ball_x = screen_width/2;        // Reset the ball position.
+        ball_x = screen_width/2;            // Reset the ball position.
         ball_y = screen_heigth/2;
-    } else if (ball_x == screen_width) {// Case if player 1 scores.
-        increment_score(1);             // Increment the score of player 1.
-        ball_dx = initial_ball_velocity;// Reset the ball velocity.
+    } else if (ball_x == screen_width) {    // Case if player 1 scores.
+        increment_score(1);                 // Increment the score of player 1.
+        ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
-        ball_x = screen_width/2;        // Reset the ball position.
+        ball_x = screen_width/2;            // Reset the ball position.
     }
 }
 
@@ -174,6 +187,8 @@ void move_ball() {
  * Moves the paddles one step along their motion vectors if the relevant switches are active.
  */
 void move_paddles() {
+    /* Should the following function be removed because it is included in the later ones? */
+    /*
     if (reverse_paddles1) {         // Checks if the special game mode REVERSE PADDLES is activated for player 1.
         player1_y -= player1_dy;    // Moves the paddle in the opposite intended direction by its motion vector.
     } else {
@@ -185,6 +200,7 @@ void move_paddles() {
     } else {
         player2_y += player2_dy;    // Moves the paddle in the intended direction by its motion vector.
     }
+    */
 
     /* The following code ensures that the paddles cannot leave the screen border. */
     if (player1_y - paddle_width/2 > 0 && player1_y + paddle_width/2 < screen_heigth) {     // Checks that player 1 is within the screen borders.
@@ -326,7 +342,7 @@ void set_special_game_modes () {
         paddle_width = initial_paddle_width;
     }
 
-    if (get_digit(switchValues, 5)) {   // If switch 6 is active, PRECISION-PONG.
+    if (get_digit(switchValues, 5)) {   // If switch 6 is active, FAST-BALL.
         fast_ball = 1;
     } else {
         fast_ball = 0;
@@ -362,10 +378,11 @@ int main(int argc, char const *argv[]) {
                 game_state = 0;
             }
         }
+
+        // Delay...
+
     }
     
-
-
     /*
     Check if game state is active (1). *should we use this inefficent polling method?*
     Read from the push-button. Run initialize_game() if it is pressed to reset the game.
