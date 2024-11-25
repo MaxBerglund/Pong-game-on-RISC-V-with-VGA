@@ -1,6 +1,6 @@
 #include <stdint.h> 
 
-//extern void enable_interrupt(void);
+extern void enable_interrupt(void);
 
 #define screen_width 320
 #define screen_heigth 240
@@ -57,10 +57,10 @@ volatile char *VGA = (volatile char*) 0x08000000;
 // VGA control registers
 volatile int *VGA_CTRL = (volatile int*) 0x04000100;
 
-/*
+
 void handle_interrupt(unsigned cause) {
 }
-*/
+
 
 /**
  * Sets all pixels on the screen to black.
@@ -95,7 +95,7 @@ void draw_ball (){
 void draw_paddle1(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = 0; x < 10; x++) {
+        for (int x = 0; x < initial_paddle_width; x++) {
             int px = player_position + x;
             int py = player1_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
@@ -111,7 +111,7 @@ void draw_paddle1(){
 void draw_paddle2(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = 0; x < 5; x++) {
+        for (int x = screen_width - initial_paddle_width; x < screen_width; x++) {
             int px = player_position;
             int py = player2_y + paddle_height/2 +  y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
@@ -167,16 +167,28 @@ int main() {
             
             move_paddles();                 // Moves the paddles according to the input of the switches.   
 
+            reset_screen();
+
+            draw_ball();
+
+            draw_paddle1();
+
+            draw_paddle2();
+
             // TODO Print everything... 
 
             if (player1_score >= 5) {
                 // TODO "Print game_over, player 1 wins!"...
                 game_state = 0;
+
+                //draw_diagonal_line();
             }
 
             if (player2_score >= 5) {
                 // TODO "Print game_over, player 2 wins!"...
                 game_state = 0;
+
+                //draw_diagonal_line();
             }
         }
 

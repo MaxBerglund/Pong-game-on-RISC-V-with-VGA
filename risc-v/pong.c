@@ -174,12 +174,7 @@ void handle_collision() {
     if (ball_dy == 0) {                                 // Case to handle when the ball is moving in a straight line along the x-axis.
         ball_dx = -ball_dx;                             // Immediately rotate the ball vector 180 degrees.
     } else if (ball_dx == 0) {                          // Case to handle when the ball is moving in a straight line along the y-axis.
-        int random = rand() % 2;                        // Generates a random number that is either 0 or 1
-        if(random) {
-            rotate_ball_vector_counter_clockwise(5);    // Rotate counter-clockwise.
-        } else {
-            rotate_ball_vector_clockwise(5);            // Rotate clockwise.
-        }
+            rotate_ball_vector_clockwise(5);
     } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
         if(ball_y == 0 || ball_y == screen_height) {    // Case to handle when the ball collided with the upper or lower wall.
             rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
@@ -376,42 +371,6 @@ void set_special_game_modes () {
     }
 }
 
-int main() {
-    initialize_game();                      // Set up the global variables for the game.
-
-    while (1) {                             // Main game loop.
-        
-        if (get_btn()) {
-            initialize_game;                // If the push-button is pressed, reset the game. *Should we use this inefficent polling method? Maybe replace with interruption method, but only after we have made it work to avoid painstaking debugging.*
-        } 
-
-        if(game_state) {
-            
-            set_special_game_modes();       // Sets special game modes according to the states of the switches.
-            
-            set_paddles_velocity();         // Sets the velocity of the paddles according to the states of the switches.
-            
-            move_ball();                    // Moves the ball and handles collisions.
-            
-            move_paddles();                 // Moves the paddles according to the input of the switches.   
-
-            // TODO Print everything... 
-
-            if (player1_score >= 5) {
-                // TODO "Print game_over, player 1 wins!"...
-                game_state = 0;
-            }
-
-            if (player2_score >= 5) {
-                // TODO "Print game_over, player 2 wins!"...
-                game_state = 0;
-            }
-        }
-
-        // TODO Delay...
-
-    }
-}
 
 /*
 
