@@ -6,21 +6,21 @@
 */
 
 #define screen_width 320
-#define screen_heigth 240
+#define screen_height 240
 #define player_position 8
 #define initial_ball_velocity -1
 #define initial_ball_size 1
-#define initial_paddle_heigth 8
+#define initial_paddle_height 8
 #define player_velocity 5
 #define PI 3.14159
 
 /* Coordinate variables */
 // int player1_x = player_position;                 // NOT NEEDED
 // int player2_x = screen_width - player_position;  // NOT NEEDED
-int player1_y = screen_heigth/2;
-int player2_y = screen_heigth/2;
+int player1_y = screen_height/2;
+int player2_y = screen_height/2;
 int ball_x = screen_width/2;
-int ball_y = screen_heigth/2;
+int ball_y = screen_height/2;
 
 /* Velocity variables */
 int player1_dy = 0;
@@ -29,7 +29,7 @@ int ball_dx = 0;
 int ball_dy = 0;
 
 /* Size variables */
-int paddle_heigth = initial_paddle_heigth;    // Indicates the width of each player paddle.
+int paddle_height = initial_paddle_height;    // Indicates the width of each player paddle.
 int ball_size = initial_ball_size;  // Indicates the length of a side of the square ball.
 
 /* Score variables */
@@ -67,9 +67,9 @@ void initialize_game() {
     ball_dx = initial_ball_velocity;
     ball_dy = 0;
     
-    player1_y = player2_y = screen_heigth/2;
+    player1_y = player2_y = screen_height/2;
     ball_x = screen_width/2;
-    ball_y = screen_heigth/2;
+    ball_y = screen_height/2;
 
     player1_score = player2_score = 0;
 
@@ -181,20 +181,20 @@ void handle_collision() {
             rotate_ball_vector_clockwise(5);            // Rotate clockwise.
         }
     } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
-        if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
+        if(ball_y == 0 || ball_y == screen_height) {    // Case to handle when the ball collided with the upper or lower wall.
             rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
         } else {
             rotate_ball_vector_clockwise(90);          // Rotate 90 degrees clockwise.
         }
     } else if (ball_dy <= 0) {                          // Case to handle when the move is moving downwards.
-        if(ball_y == 0 || ball_y == screen_heigth) {    // Case to handle when the ball collided with the upper or lower wall.
+        if(ball_y == 0 || ball_y == screen_height) {    // Case to handle when the ball collided with the upper or lower wall.
             rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
         } else {
             rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
         }
     } else {                                            // Else statement to handle the case when something unforeseen happens.
         ball_x = screen_width/2;                        // Reset the ball x-coordinate.
-        ball_y = screen_heigth/2;                       // Reset the ball y-coordinate.
+        ball_y = screen_height/2;                       // Reset the ball y-coordinate.
         ball_dx = initial_ball_velocity;                // Reset the ball velocity along the x-axis.
         ball_dy = 0;                                    // Reset the ball velocity along the y-axis.
     }
@@ -213,16 +213,16 @@ void move_ball() {
     ball_x += ball_dx;  // Move the ball along the x-axis by its corresonding motion vector.
     ball_y += ball_dy;  // Move the ball along the y-axis by its corresonding motion vector.
 
-    if(ball_y == 0 || ball_y == screen_heigth) handle_collision();                                                                                      // Case when ball collides with the upper or lower wall.
-    if(ball_x == player_position && (ball_y == player1_y + paddle_heigth/2 || ball_y == player1_y - paddle_heigth/2)) handle_collision();                 // Case when the ball collides with player 1's paddle.
-    if(ball_x == screen_width - player_position && (ball_y == player2_y + paddle_heigth/2 || ball_y == player2_y - paddle_heigth/2)) handle_collision();  // Case when the ball collides with player 2's paddle.
+    if(ball_y == 0 || ball_y == screen_height) handle_collision();                                                                                      // Case when ball collides with the upper or lower wall.
+    if(ball_x == player_position && (ball_y == player1_y + paddle_height/2 || ball_y == player1_y - paddle_height/2)) handle_collision();                 // Case when the ball collides with player 1's paddle.
+    if(ball_x == screen_width - player_position && (ball_y == player2_y + paddle_height/2 || ball_y == player2_y - paddle_height/2)) handle_collision();  // Case when the ball collides with player 2's paddle.
     
     if(ball_x == 0) {                       // Case if player 2 scores.
         increment_score(2);                 // Increment the score of player 2.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
         ball_x = screen_width/2;            // Reset the ball position.
-        ball_y = screen_heigth/2;
+        ball_y = screen_height/2;
     } else if (ball_x == screen_width) {    // Case if player 1 scores.
         increment_score(1);                 // Increment the score of player 1.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
@@ -237,19 +237,19 @@ void move_ball() {
  */
 void move_paddles() {
     /* For player 1. */
-    if (player1_y - paddle_heigth/2 > 0 && player1_y + paddle_heigth/2 < screen_heigth) {   // Checks that player 1 is within the screen borders.
+    if (player1_y - paddle_height/2 > 0 && player1_y + paddle_height/2 < screen_height) {   // Checks that player 1 is within the screen borders.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             player1_y -= player1_dy;                                                        // Moves the paddle in the unintended direction by its motion vector.
         } else {
             player1_y += player1_dy;                                                        // Moves the paddle in the intended direction by its motion vector.
         }
-    } else if (player1_y - paddle_heigth/2 < 0) {                                           // Checks if the player 1 paddle is below the screen.
+    } else if (player1_y - paddle_height/2 < 0) {                                           // Checks if the player 1 paddle is below the screen.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player1_dy < 0) player1_y -= player1_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's upwards.
         } else {
             if (player1_dy > 0) player1_y += player1_dy;                                    // Moves the paddle in the intended direction by its motion vector IF it's upwards.
         }
-    } else if (player1_y + paddle_heigth/2 > screen_heigth) {                               // Checks if the player 1 paddle is above the screen.
+    } else if (player1_y + paddle_height/2 > screen_height) {                               // Checks if the player 1 paddle is above the screen.
         if (reverse_paddles1) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player1_dy > 0) player1_y -= player1_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's downwards.
         } else {
@@ -258,19 +258,19 @@ void move_paddles() {
     }
 
     /* For player 2. */
-    if (player2_y - paddle_heigth/2 > 0 && player2_y + paddle_heigth/2 < screen_heigth) {   // Checks that player 2 is within the screen borders.
+    if (player2_y - paddle_height/2 > 0 && player2_y + paddle_height/2 < screen_height) {   // Checks that player 2 is within the screen borders.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             player2_y -= player2_dy;                                                        // Moves the paddle in the unintended direction by its motion vector.
         } else {
             player2_y += player2_dy;                                                        // Moves the paddle in the intended direction by its motion vector.
         }
-    } else if (player2_y - paddle_heigth/2 < 0) {                                           // Checks if the player 2 paddle is below the screen.
+    } else if (player2_y - paddle_height/2 < 0) {                                           // Checks if the player 2 paddle is below the screen.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player2_dy < 0) player2_y -= player2_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's upwards.
         } else {
             if (player2_dy > 0) player2_y += player2_dy;                                    // Moves the paddle in the intended direction by its motion vector IF it's upwards.
         }
-    } else if (player2_y + paddle_heigth/2 > screen_heigth) {                               // Checks if the player 2 paddle is above the screen.
+    } else if (player2_y + paddle_height/2 > screen_height) {                               // Checks if the player 2 paddle is above the screen.
         if (reverse_paddles2) {                                                             // Checks if the special game mode REVERSE PADDLES is activated.
             if (player2_dy > 0) player2_y -= player2_dy;                                    // Moves the paddle in the unintended direction by its motion vector IF it's downwards.
         } else {
@@ -280,16 +280,16 @@ void move_paddles() {
 
     /* Below is a more hardcoded solution that just resets the paddle position if it surpasses the screen border. REVERSE PADDLES is not included. */
     /*
-    if (player1_y - paddle_heigth/2 < 0) {   // Checks that player 1 paddle is within the screen border and resets it otherwise.
-        player1_y = 0 + paddle_heigth/2;
-    } else if (player1_y + paddle_heigth/2 > screen_heigth) {
-        player1_y = screen_heigth - paddle_heigth/2;
+    if (player1_y - paddle_height/2 < 0) {   // Checks that player 1 paddle is within the screen border and resets it otherwise.
+        player1_y = 0 + paddle_height/2;
+    } else if (player1_y + paddle_height/2 > screen_height) {
+        player1_y = screen_height - paddle_height/2;
     }
 
-    if (player2_y - paddle_heigth/2 < 0) {   // Checks that player 2 paddle is within the screen border and resets it otherwise.
-        player2_y = 0 + paddle_heigth/2;
-    } else if (player2_y + paddle_heigth/2 > screen_heigth) {
-        player2_y = screen_heigth - paddle_heigth/2;
+    if (player2_y - paddle_height/2 < 0) {   // Checks that player 2 paddle is within the screen border and resets it otherwise.
+        player2_y = 0 + paddle_height/2;
+    } else if (player2_y + paddle_height/2 > screen_height) {
+        player2_y = screen_height - paddle_height/2;
     }
     */
 
@@ -364,9 +364,9 @@ void set_special_game_modes () {
     }
 
     if (get_digit(switchValues, 4)) {   // If switch 5 is active, PRECISION-PONG.
-        paddle_heigth = 2;
+        paddle_height = 2;
     } else {
-        paddle_heigth = initial_paddle_heigth;
+        paddle_height = initial_paddle_height;
     }
 
     if (get_digit(switchValues, 5)) {   // If switch 6 is active, FAST-BALL.

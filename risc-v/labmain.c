@@ -1,8 +1,6 @@
 #include <stdint.h> 
-#include <math.h>
 
-
-extern void enable_interrupt(void);
+//extern void enable_interrupt(void);
 
 #define screen_width 320
 #define screen_heigth 240
@@ -15,7 +13,8 @@ extern void enable_interrupt(void);
 
 extern void initialize_game();
 extern void increment_score(int player_number);
-extern void rotate_ball_vector(int degrees);
+extern void rotate_ball_vector_counter_clockwise(int degrees);
+extern void rotate_ball_vector_clockwise(int degrees);
 extern void handle_collision();
 extern void move_ball();
 extern void move_paddles();
@@ -58,57 +57,68 @@ volatile char *VGA = (volatile char*) 0x08000000;
 // VGA control registers
 volatile int *VGA_CTRL = (volatile int*) 0x04000100;
 
+/*
 void handle_interrupt(unsigned cause) {
 }
+*/
 
+/**
+ * Sets all pixels on the screen to black.
+ */
 void reset_screen(){
     for (int i = 0; i < screen_width * screen_heigth; i++) {
             VGA[i] = 0x00; // Black
         }
 
 }
+
+/**
+ * Draws the ball on the screen.
+ */
 void draw_ball (){
 
-       for (int y = 0; y < ball_size; y++) {
-            for (int x = 0; x < ball_size; x++) {
-                int px = ball_x + x;
-                int py = ball_y + y;
-                if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
-                    VGA[py * screen_width + px] = 0xFF; // White pixel
-                }
+    for (int y = 0; y < ball_size; y++) {
+        for (int x = 0; x < ball_size; x++) {
+            int px = ball_x + x;
+            int py = ball_y + y;
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+                VGA[py * screen_width + px] = 0xFF; // White pixel
             }
         }
+    }
 
 }
 
+/**
+ * Draws the paddle of player 1 on the screen.
+ */
 void draw_paddle1(){
 
-       for (int y = 0; y < paddle_height; y++) {
-            for (int x = 0; x < 10; x++) {
-                int px = player_position + x;
-                int py = player1_y - paddle_height / 2 + y;
-                if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
-                    VGA[py * screen_width + px] = 0xFF; // White pixel
-                }
+    for (int y = 0; y < paddle_height; y++) {
+        for (int x = 0; x < 10; x++) {
+            int px = player_position + x;
+            int py = player1_y - paddle_height / 2 + y;
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+                VGA[py * screen_width + px] = 0xFF; // White pixel
             }
         }
-
+    }
 }
 
-
-
+/**
+ * Draws the paddle of player 2 on the screen.
+ */
 void draw_paddle2(){
-     
-       for (int y = 0; y < paddle_height; y++) {
-            for (int x = 0; x < 5; x++) {
-                int px = player_position;
-                int py = player2_y + paddle_height/2 +  y;
-                if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
-                    VGA[py * screen_width + px] = 0xFF; // White pixel
-                }
+
+    for (int y = 0; y < paddle_height; y++) {
+        for (int x = 0; x < 5; x++) {
+            int px = player_position;
+            int py = player2_y + paddle_height/2 +  y;
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+                VGA[py * screen_width + px] = 0xFF; // White pixel
             }
         }
-
+    }
 }
 
 
@@ -138,7 +148,7 @@ void draw_diagonal_line(int x1, int y1, int x2, int y2) {
 //OVAN ÄR ETT TEST
 
 
-int main(int argc, char const *argv[]) {
+int main() {
     initialize_game();                      // Set up the global variables for the game.
 
     while (1) {                             // Main game loop.
@@ -155,30 +165,31 @@ int main(int argc, char const *argv[]) {
             
             move_ball();                    // Moves the ball and handles collisions.
             
-            move_paddles();                 // Moves the paddles according to the input of the switches.    
+            move_paddles();                 // Moves the paddles according to the input of the switches.   
+
+            // TODO Print everything... 
 
             if (player1_score >= 5) {
-                // TODO "Print game_over, player 1 wins!"
+                // TODO "Print game_over, player 1 wins!"...
                 game_state = 0;
             }
 
             if (player2_score >= 5) {
-                // TODO "Print game_over, player 2 wins!"
+                // TODO "Print game_over, player 2 wins!"...
                 game_state = 0;
             }
         }
 
-                // Update VGA control registers (double-buffering simulation)
+        // Update VGA control registers (double-buffering simulation)
+        // Updates the screen
         *(VGA_CTRL + 1) = (unsigned int)(VGA);
         *(VGA_CTRL + 0) = 0;
 
-        // Delay
+        // Delay. Can we find a more efficent delay?
         for (int i = 0; i < 1000000; i++) {
             asm volatile("nop");
         }
     
     }
     
-
-    return 0;
 }
