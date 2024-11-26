@@ -4,14 +4,14 @@
 extern void enable_interrupt(void);
 
 #define screen_width 320
-#define screen_heigth 240
+#define screen_height 240
 #define player_position 8
 #define player_width 5
-#define initial_ball_velocity -3
-#define initial_ball_size 7
-#define initial_paddle_heigth 25
+#define initial_ball_velocity -5
+#define initial_ball_size 5
+#define initial_paddle_height 30
 #define initial_paddle_width 5
-#define player_velocity 5
+#define player_velocity 10
 #define PI 3.14159
 
 extern void initialize_game();
@@ -67,10 +67,22 @@ void handle_interrupt(unsigned cause) {
  * Sets all pixels on the screen to black.
  */
 void reset_screen(){
-    for (int i = 0; i < screen_width * screen_heigth; i++) {
+    for (int i = 0; i < screen_width * screen_height; i++) {
             VGA[i] = 0x00; //Black
         }
 
+}
+
+void ball_clear(){
+    for (int y = 0; y < ball_size; y++) {
+        for (int x = 0; x < ball_size; x++) {
+            int px = ball_x + x;
+            int py = ball_y + y;
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
+                VGA[py * screen_width + px] = 0xFF; // Black pixel
+            }
+        }
+    }
 }
 
 /**
@@ -82,26 +94,12 @@ void draw_ball (){
         for (int x = 0; x < ball_size; x++) {
             int px = ball_x + x;
             int py = ball_y + y;
-            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }
 
         } ball_clear();
     }
-
-}
-
-    void ball_clear(){
-        for (int y = 0; y < ball_size; y++) {
-            for (int x = 0; x < ball_size; x++) {
-                int px = ball_x + x;
-                int py = ball_y + y;
-                if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
-                    VGA[py * screen_width + px] = 0xFF; // Black pixel
-                }
-            }
-    }
-
 
 }
 
@@ -114,7 +112,7 @@ void draw_paddle1(){
         for (int x = 0; x < initial_paddle_width; x++) {
             int px = player_position + x;
             int py = player1_y - paddle_height / 2 + y;
-            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }
         }
@@ -130,7 +128,7 @@ void draw_paddle2(){
         for (int x = screen_width - player_position - initial_paddle_width; x < screen_width-player_position; x++) {
             int px = player_position + x;
             int py = player2_y - paddle_height / 2 + y;
-            if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
+            if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }
         }
@@ -138,7 +136,7 @@ void draw_paddle2(){
 }
 
 void draw_diagonal_line_ltr() {
-    for (int y = 100; y < screen_heigth -99; y++) {
+    for (int y = 100; y < screen_height -99; y++) {
         for (int x = 50; x < screen_width; x++) {
             int px = x;
             int py = y;
@@ -150,11 +148,11 @@ void draw_diagonal_line_ltr() {
 }
 
 void draw_diagonal_line_rtl() {
-    for (int y = screen_heigth-100; y > 99; y--) {
+    for (int y = screen_height-100; y > 99; y--) {
         for (int x = screen_width - 100; x > 0; x--) {
             int px = x;
             int py = y;
-            if (y==screen_heigth-x) {   
+            if (y==screen_height-x) {   
                 VGA[py * screen_width + px + 35] = 0xFF; // White pixel
             }
         }
@@ -162,8 +160,8 @@ void draw_diagonal_line_rtl() {
 }
 
 void green_screen() {
-    for (int i = 0; i < screen_width * screen_heigth; i++) {
-            VGA[i] = 0x811331;
+    for (int i = 0; i < screen_width * screen_height; i++) {
+            VGA[i] = 49;//0x811331;
         }
 }
 

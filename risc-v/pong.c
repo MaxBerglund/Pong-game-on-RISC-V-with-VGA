@@ -13,7 +13,7 @@
 #define initial_ball_size 5
 #define initial_paddle_height 30
 #define initial_paddle_width 5
-#define player_velocity 5
+#define player_velocity 10
 #define PI 3.14159
 
 /* Coordinate variables */
