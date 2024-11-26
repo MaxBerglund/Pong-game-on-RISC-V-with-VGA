@@ -1,31 +1,34 @@
 #include <stdint.h> 
+#include <stdlib.h>
 
 extern void enable_interrupt(void);
 
 #define screen_width 320
 #define screen_heigth 240
 #define player_position 8
-#define initial_ball_velocity -1
-#define initial_ball_size 1
-#define initial_paddle_width 8
+#define player_width 5
+#define initial_ball_velocity -3
+#define initial_ball_size 7
+#define initial_paddle_heigth 25
 #define player_velocity 5
 #define PI 3.14159
 
 extern void initialize_game();
-extern void increment_score(int player_number);
+//extern void increment_score(int player_number);
 extern void rotate_ball_vector_counter_clockwise(int degrees);
-extern void rotate_ball_vector_clockwise(int degrees);
-extern void handle_collision();
+//extern void rotate_ball_vector_clockwise(int degrees);
+//extern void handle_collision();
 extern void move_ball();
 extern void move_paddles();
-extern void initialize_game_time();
-extern int get_sw(void);
+//extern void initialize_game_time();
+//extern int get_sw(void);
 extern int get_btn(void);
-extern int get_digit(int value, int digitNumber);
+//extern int get_digit(int value, int digitNumber);
 extern void set_paddles_velocity();
 extern void set_special_game_modes();
+extern void seven_segment_display(int display, int number);
 
-
+/* Coordinate variables */
 extern int player1_y;
 extern int player2_y;
 extern int ball_x;
@@ -47,15 +50,18 @@ extern int player2_score;
 
 /* Game state variables */
 extern int game_state;
-extern int game_time;
 extern int reverse_paddles1;
 extern int reverse_paddles2;
 extern int fast_ball;
+extern int seconds;
+extern int minutes;
 
+int timeoutCount = 0;
+int two_seconds = 0;
 
-volatile char *VGA = (volatile char*) 0x08000000;
-// VGA control registers
-volatile int *VGA_CTRL = (volatile int*) 0x04000100;
+/* VGA variables */
+volatile char *VGA = (volatile char*) 0x08000000;       // Write pixels to the screen
+volatile int *VGA_CTRL = (volatile int*) 0x04000100;    // VGA control registers, used to update the screen
 
 
 void handle_interrupt(unsigned cause) {
@@ -95,7 +101,7 @@ void draw_ball (){
 void draw_paddle1(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = 0; x < initial_paddle_width; x++) {
+        for (int x = 0; x < initial_paddle_heigth; x++) {
             int px = player_position + x;
             int py = player1_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
@@ -146,46 +152,103 @@ void draw_diagonal_line_rtl() {
         }
     }
 }
+*/
+//OVAN ÄR ETT TEST
+
+/**
+ * Updates the seconds and minutes values and sends them to the 7-segment displays.
+ */
+void update_timer() {
+    //rotate_ball_vector_counter_clockwise(45);
+    
+    two_seconds++;
+    if(fast_ball && two_seconds >= 2) { // If the special game_mode FAST-BALL is active, increase the ball speed each 2 seconds.
+        two_seconds = 0;                // Reset the five-second status.
+        if(ball_dx > 0) {
+            if(ball_dx != 0) {
+                ball_dx += 1;           // Increase the ball velocity along the x-axis.
+            }
+        } else {
+            if(ball_dx != 0) {
+                ball_dx -= 1;           // Increase the ball velocity along the x-axis.
+            }
+        }
+        if(ball_dy > 0) {
+            if(ball_dy != 0) {
+                ball_dy += 1;           // Increase the ball velocity along the y-axis.
+            }
+        } else {
+            if(ball_dy != 0) {
+                ball_dy -= 1;           // Increase the ball velocity along the x-axis.
+            }
+        }
+    }
+
+    timeoutCount = 0;
+    if(seconds >= 59) {             
+        minutes++;
+        seconds = 0;
+    } else {
+        seconds++;
+    }
+    seven_segment_display(2, seconds % 10);     // Send the ones digit of the seconds to the third 7-segment display.
+    seven_segment_display(3, seconds / 10);     // Send the tens digit of the seconds to the fourth 7-segment display.
+    seven_segment_display(4, minutes % 10);     // Send the ones digit of the minutes to the fifth 7-segment display.
+    seven_segment_display(5, minutes / 10);     // Send the tens digit of the minutes to the sixth 7-segment display.
+}
 
 
 int main() {
-    initialize_game();                      // Set up the global variables for the game.
+    initialize_game();                          // Set up the global variables for the game.
+    volatile int *timeoutPointer = (volatile int*) 0x04000020; // Creates a pointer that points to the memory adress where the timer is. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the dtek-board.
 
-    while (1) {                             // Main game loop.
+    while (1) {                                 // Main game loop.
         
         if (get_btn()) {
-            initialize_game;                // If the push-button is pressed, reset the game. *Should we use this inefficent polling method? Maybe replace with interruption method, but only after we have made it work to avoid painstaking debugging.*
+            initialize_game();                  // If the push-button is pressed, reset the game. *Should we use this inefficent polling method? Maybe replace with interruption method, but only after we have made it work to avoid painstaking debugging.*
         } 
 
         if(game_state) {
             
-            set_special_game_modes();       // Sets special game modes according to the states of the switches.
-            
-            set_paddles_velocity();         // Sets the velocity of the paddles according to the states of the switches.
-            
-            move_ball();                    // Moves the ball and handles collisions.
-            
-            move_paddles();                 // Moves the paddles according to the input of the switches.   
+            if((*timeoutPointer & 1) == 1) {    // Check if the timeout event flag is true. In that case, run the program.
+                timeoutCount++;
+                *timeoutPointer &= ~1;          // Reset the timeout flag.
 
-            reset_screen();
+                if(timeoutCount == 10) update_timer(); // Increments and updates the game timer.
 
-            draw_ball();
+                set_special_game_modes();       // Sets special game modes according to the states of the switches.
+                
+                set_paddles_velocity();         // Sets the velocity of the paddles according to the states of the switches.
+                
+                move_ball();                    // Moves the ball and handles collisions.
+                
+                move_paddles();                 // Moves the paddles according to the input of the switches.   
 
-            draw_paddle1();
+                reset_screen();                 // Reset the screen by making every pixel on it black.
 
-            draw_paddle2();
+                draw_ball();                    // Set the pixels where the ball is to white.
 
-            // TODO Print everything... 
+                draw_paddle1();                 // Set the pixels where the player 1 paddle is to white.
 
-            if (player1_score >= 5) {
-                // TODO "Print game_over, player 1 wins!"...
-                game_state = 0;
+                draw_paddle2();                 // Set the pixels where the player 2 paddle is to white.
 
+                if (player1_score >= 5) {
+                    // TODO "Print game_over, player 1 wins!"...
+                    game_state = 0;
+
+                    //draw_diagonal_line();
+                }
                 draw_diagonal_line_ltr();
 
                 draw_diagonal_line_rtl();
             }
 
+                if (player2_score >= 5) {
+                    // TODO "Print game_over, player 2 wins!"...
+                    game_state = 0;
+
+                    //draw_diagonal_line();
+                }
             if (player2_score >= 5) {
                 // TODO "Print game_over, player 2 wins!"...
                 game_state = 0;
@@ -200,12 +263,6 @@ int main() {
         // Updates the screen
         *(VGA_CTRL + 1) = (unsigned int)(VGA);
         *(VGA_CTRL + 0) = 0;
-
-        // Delay. Can we find a more efficent delay?
-        for (int i = 0; i < 1000000; i++) {
-            asm volatile("nop");
-        }
-    
     }
     
 }
