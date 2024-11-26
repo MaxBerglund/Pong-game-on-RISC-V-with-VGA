@@ -1,16 +1,17 @@
 /* 
     pong.c
     By Max Berglund.
-    Last modified: 2024-11-25
+    Last modified: 2024-11-26
     This file is in the public domain.
 */
 
 #define screen_width 320
 #define screen_height 240
 #define player_position 8
+#define player_width 5
 #define initial_ball_velocity -3
-#define initial_ball_size 3
-#define initial_paddle_height 8
+#define initial_ball_size 7
+#define initial_paddle_height 25
 #define player_velocity 5
 #define PI 3.14159
 
@@ -38,10 +39,11 @@ int player2_score = 0;              // Displayed on the rightmost 7-segement dis
 
 /* Game state variables */
 int game_state = 0;                 // Game is active if 1, game is over if 0.
-int game_time = 0;                  // Amount of seconds since beginning of game.
 int reverse_paddles1 = 0;           // Special game mode that reverses the control of the paddles for player 1.
 int reverse_paddles2 = 0;           // Special game mode that reverses the control of the paddles for player 2.
 int fast_ball = 0;                  // Special game mode that makes the ball progressively faster during the course of the game.
+int seconds = 0;
+int minutes = 0;
 
 /*
 Special game modes:
@@ -52,11 +54,44 @@ Special game modes:
 */
 
 /**
+ * Displays a number on the seven segment displays.
+ * Parameter: Display is the zero indexed value used to select which display to use. Must be 0-5, otherwise do nothing.
+ * Parameter: Number is the number to use. Must be 0-9, otherwise do nothing.
+ */
+void seven_segment_display(int display, int number) {
+    if(display >= 0 && display <= 5) {
+        volatile int *displayPointer = (volatile int*) 0x04000050 + 4 * display; // Creates a pointer that points to the memory adress where the 7-segment displays are. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the RISC-V-board.
+
+        /* Conditional statements to set the selected display to the correct configuration. */
+        if(number == 0) *displayPointer = 0b01000000;
+        if(number == 1) *displayPointer = 0b01111001;
+        if(number == 2) *displayPointer = 0b00100100;
+        if(number == 3) *displayPointer = 0b00110000;
+        if(number == 4) *displayPointer = 0b00011001;
+        if(number == 5) *displayPointer = 0b00010010;
+        if(number == 6) *displayPointer = 0b00000010;
+        if(number == 7) *displayPointer = 0b01111000;
+        if(number == 8) *displayPointer = 0b00000000;
+        if(number == 9) *displayPointer = 0b00010000;
+    }
+}
+
+/**
  * Initializes the builtin timer on the RISV-V board and uses it to keep track of the surpassed time during the game.
  */
 void initialize_game_time() {
-    // TODO
-    // Configure the game_time variable so that it uses the RISC-V board timer for accurately counting the time and displaying it on the 7-segment displays.
+    volatile int *timerPointer = (volatile int*) 0x04000020;    // Creates a pointer that points to the memory adress where the timer is. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the RISC-V-board.
+    int period = 30000000 * 0.1 - 1;                                  // Set timer period to 3 000 000 because the processor has a 30MHz clock frequency and we want it to tick once each 100ms. We also subtract by one because it is zero-indexed
+
+    timerPointer += 2;                                          // Increment the pointer to periodL register
+    *timerPointer = period & 0xffff;                            // Insert the low part of the period into the periodL register
+
+    timerPointer++;                                             // Increment the pointer to the periodH register
+    *timerPointer = (period >> 16) & 0xffff;                    // Insert the high part of the period into the periodH register
+
+    // Start the timer
+    timerPointer -= 2;                                          // Decrement the pointer to the control register
+    *timerPointer |= 0b111;                                     // Set the START, CONT and ITO registers to true. We don't need to erase these bits before since we're just adding 1:s.
 }
 
 /**
@@ -72,10 +107,13 @@ void initialize_game() {
     ball_y = screen_height/2;
 
     player1_score = player2_score = 0;
+    seven_segment_display(0, 0);        // Set the current score for player 2 to 0.
+    seven_segment_display(1, 0);        // Set the current score for player 1 to 0.
 
-    game_time = 0;
-    game_state = 1;
+    seconds = 0;
+    minutes = 0;
     initialize_game_time();
+    game_state = 1;
 }
 
 /**
@@ -84,35 +122,13 @@ void initialize_game() {
  */
 void increment_score(int player_number) {
     if (player_number == 1) {
-        volatile int *displayPointer = (volatile int*) 0x04000050; // Creates a pointer that points to the memory adress where the 7-segment displays are. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the dtek-board.
-        player1_score++;
-
-        if(player1_score == 0) *displayPointer = 0b01000000;
-        if(player1_score == 1) *displayPointer = 0b01111001;
-        if(player1_score == 2) *displayPointer = 0b00100100;
-        if(player1_score == 3) *displayPointer = 0b00110000;
-        if(player1_score == 4) *displayPointer = 0b00011001;
-        if(player1_score == 5) *displayPointer = 0b00010010;
-        if(player1_score == 6) *displayPointer = 0b00000010;
-        if(player1_score == 7) *displayPointer = 0b01111000;
-        if(player1_score == 8) *displayPointer = 0b00000000;
-        if(player1_score == 9) *displayPointer = 0b00010000;
+        player1_score++;                            // Increment player 1 score.
+        seven_segment_display(1, player1_score);    // Display player 1 score on the first 7-segment display.
     }
 
     if (player_number == 2) {
-        volatile int *displayPointer = (volatile int*) 0x04000050 + 4; // Creates a pointer that points to the memory adress where the 7-segment displays are. It is volatile so that the compiler doesn't do any unneccessary optimisations that might alter the behaviour of the dtek-board.
-        player2_score++;
-
-        if(player2_score == 0) *displayPointer = 0b01000000;
-        if(player2_score == 1) *displayPointer = 0b01111001;
-        if(player2_score == 2) *displayPointer = 0b00100100;
-        if(player2_score == 3) *displayPointer = 0b00110000;
-        if(player2_score == 4) *displayPointer = 0b00011001;
-        if(player2_score == 5) *displayPointer = 0b00010010;
-        if(player2_score == 6) *displayPointer = 0b00000010;
-        if(player2_score == 7) *displayPointer = 0b01111000;
-        if(player2_score == 8) *displayPointer = 0b00000000;
-        if(player2_score == 9) *displayPointer = 0b00010000;
+        player2_score++;                            // Increment player 2 score.
+        seven_segment_display(0, player2_score);    // Display player 2 score on the second 7-segment display.
     }
 }
 
@@ -129,31 +145,63 @@ void rotate_ball_vector_counter_clockwise(int degrees) {
         if (degrees > 67 && degrees <= 82) degrees = 75;
         if (degrees > 82) degrees = 90;
     }
-    
+
+    int old_ball_dx = ball_dx;
+    int old_ball_dy = ball_dy;
+
+/* The following is a copy of the next table but with rougher estimates */ /*
     if (degrees == 15) {
-        ball_dx = ball_dx * 0.965 - ball_dy * 0.262;    // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 0.262 + ball_dy * 0.965;    // Calculate the y-vector after rotation.
+        ball_dx = (float)old_ball_dx - (float)old_ball_dy * (float)0.27;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.27 + (float)old_ball_dy;    // Calculate the y-vector after rotation.
     } else if (degrees == 30) {
-        ball_dx = ball_dx * 0.863 - ball_dy * 0.506;    // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 0.506 + ball_dy * 0.863;    // Calculate the y-vector after rotation.
+        ball_dx = (float)old_ball_dx * (float)0.9 - (float)old_ball_dy * (float)0.51;       // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.51 + (float)old_ball_dy * (float)0.9;       // Calculate the y-vector after rotation.
     } else if (degrees == 45) {
-        ball_dx = ball_dx * 0.707 - ball_dy * 0.707;    // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 0.707 + ball_dy * 0.707;    // Calculate the y-vector after rotation.
+        ball_dx = (float)old_ball_dx * (float)0.707 - (float)old_ball_dy * (float)0.707;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.707 + (float)old_ball_dy * (float)0.707;    // Calculate the y-vector after rotation.
     } else if (degrees == 60) {
-        ball_dx = ball_dx * 0.498 - ball_dy * 0.867;    // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 0.867 + ball_dy * 0.498;    // Calculate the y-vector after rotation.
+        ball_dx = (float)old_ball_dx * (float)0.5 - (float)old_ball_dy * (float)0.87;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.87 + (float)old_ball_dy * (float)0.5;    // Calculate the y-vector after rotation.
     } else if (degrees == 75) {
-        ball_dx = ball_dx * 0.258 - ball_dy * 0.966;    // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 0.966 + ball_dy * 0.258;    // Calculate the y-vector after rotation.
+        ball_dx = (float)old_ball_dx * (float)0.3 - (float)old_ball_dy * (float)0.97;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.97 + (float)old_ball_dy * (float)0.3;    // Calculate the y-vector after rotation.
     } else if (degrees == 90) {
-        ball_dx = ball_dx * 0 - ball_dy * 1;            // Calculate the x-vector after rotation.
-        ball_dy = ball_dx * 1 + ball_dy * 0;            // Calculate the y-vector after rotation.
+        ball_dx = -old_ball_dy;         // Calculate the x-vector after rotation.
+        ball_dy = old_ball_dx;          // Calculate the y-vector after rotation.
+    }
+*/
+
+    /* The following table is the same as above but with more accurate estimations of sin() and cos(). */
+    if (degrees == 15) {
+        ball_dx = (float)old_ball_dx * (float)0.965 - (float)old_ball_dy * (float)0.262;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.262 + (float)old_ball_dy * (float)0.965;    // Calculate the y-vector after rotation.
+    } else if (degrees == 30) {
+        ball_dx = (float)old_ball_dx * (float)0.863 - (float)old_ball_dy * (float)0.506;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.506 + (float)old_ball_dy * (float)0.863;    // Calculate the y-vector after rotation.
+    } else if (degrees == 45) {
+        ball_dx = (float)old_ball_dx * (float)0.707 - (float)old_ball_dy * (float)0.707;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.707 + (float)old_ball_dy * (float)0.707;    // Calculate the y-vector after rotation.
+    } else if (degrees == 60) {
+        ball_dx = (float)old_ball_dx * (float)0.498 - (float)old_ball_dy * (float)0.867;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.867 + (float)old_ball_dy * (float)0.498;    // Calculate the y-vector after rotation.
+    } else if (degrees == 75) {
+        ball_dx = (float)old_ball_dx * (float)0.258 - (float)old_ball_dy * (float)0.966;    // Calculate the x-vector after rotation.
+        ball_dy = (float)old_ball_dx * (float)0.966 + (float)old_ball_dy * (float)0.258;    // Calculate the y-vector after rotation.
+    } else if (degrees == 90) {         // Standard rotation is 90 degrees.
+        ball_dx = -old_ball_dy;         // Calculate the x-vector after rotation.
+        ball_dy = old_ball_dx;          // Calculate the y-vector after rotation.
+    }
+
+    /* Is the following needed? */
+    if(ball_dx == 0 && ball_dy == 0) {  // Case to handle when the ball becomes stationary after too many cosecutive rotations.
+        ball_dx = old_ball_dx; 
+        ball_dy = -old_ball_dy;
     }
 
     /* The following method instead uses a method of multyplying the balls velocity vector with the rotational matrix for a 2D vector. It unfortunately requires #include <math.h> to work, which apparently isn't supported on the RISC-V board.
-    degrees *= PI / 180;                                        // Convert the amount of degrees to radians.
-    ball_dx = ball_dx * cos(degrees) - ball_dy * sin(degrees);  // Calculate the x-vector after rotation.
-    ball_dy = ball_dx * sin(degrees) + ball_dy * cos(degrees);  // Calculate the y-vector after rotation.
+    degrees *= PI / (float)180;                                                             // Convert the amount of degrees to radians.
+    ball_dx = (float)ball_dx * (float)cos(degrees) - (float)ball_dy * (float)sin(degrees);  // Calculate the x-vector after rotation.
+    ball_dy = (float)ball_dx * (float)sin(degrees) + (float)ball_dy * (float)cos(degrees);  // Calculate the y-vector after rotation.
     */
 }
 
@@ -172,43 +220,71 @@ void rotate_ball_vector_clockwise(int degrees) {
  * Parameter: Collision_type indicates what type of collision happened. 1 for upper or lower walls. 2 for bounce on player 1. 3 for bounce on player 2. For any other integer, do nothing.
  */
 void handle_collision(int collision_type) {
-    if (ball_dy == 0) {                                 // Case to handle when the ball is moving in a straight line along the x-axis.
-        ball_dx = -ball_dx;                             // Immediately rotate the ball vector 180 degrees.
-    } else if (ball_dx == 0) {                          // Case to handle when the ball is moving in a straight line along the y-axis.
-            rotate_ball_vector_clockwise(5);
-    } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
-        if(collision_type == 1) {                       // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
-        } else {
-            rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
+    
+    /*
+    if(collision_type == 1 || collision_type == 2) {
+        ball_dx = -ball_dx;
+    }
+    */
+    
+    if (collision_type == 1) {
+        if(ball_dx == 0) {                                      // Special case to handle when the ball is not travelling along the x-axis at all.
+            ball_dy = -ball_dy;
+            rotate_ball_vector_clockwise(45);
+        } else if(ball_y >= screen_height/2 && ball_dx > 0) {    // Case to handle when the ball collided with the lower wall and is travelling towards player 2.
+            rotate_ball_vector_counter_clockwise(90);
+        } else if(ball_y >= screen_height/2 && ball_dx < 0) {    // Case to handle when the ball collided with the lower wall and is travelling towards player 1.
+            rotate_ball_vector_clockwise(90);
+        } else if(ball_y <= screen_height/2 && ball_dx > 0) {    // Case to handle when the ball collided with the upper wall and is travelling towards player 2.
+            rotate_ball_vector_counter_clockwise(90);
+        } else if(ball_y <= screen_height/2 && ball_dx < 0) {    // Case to handle when the ball collided with the upper wall and is travelling towards player 1.
+            rotate_ball_vector_clockwise(90);
         }
-    } else if (ball_dy <= 0) {                          // Case to handle when the move is moving downwards.
-        if(collision_type == 1) {                       // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
-        } else {
-            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
+    }
+
+    if (collision_type == 2 || collision_type == 3) {
+        ball_dx = -ball_dx;
+
+        if(ball_dy == 0) {
+            if(ball_x > screen_width/2) {
+                rotate_ball_vector_clockwise(45);
+            } else {
+                rotate_ball_vector_counter_clockwise(45);
+            }
         }
-    } 
+    }
+
+
+    /*
+        if(ball_dy > 0) {                                       // Case to handle when the ball is moving downwards.
+            if (ball_y >= player1_y + paddle_height / 4) {      // Case to handle when the ball collided with the upper quarter of the paddle.
+                ball_dx = -ball_dx;
+                rotate_ball_vector_clockwise(75);
+            }
+        }
+    */
 
     /* Code for handling collision with the player 1 paddle. */
-    if (collision_type == 2) {
-        if (ball_y >= player1_y && ball_y <= player1_y + paddle_height/2) {
+    /*if (collision_type == 2) {
+        if (ball_y >= player1_y + paddle_height / 2) {
+            ball_dx = -ball_dx;
             rotate_ball_vector_clockwise(75);
         }
         if (ball_y < player1_y && ball_y >= player1_y - paddle_height/2) {
             rotate_ball_vector_counter_clockwise(75);
         }
-    }
+    }*/
     
     /* Code for handling collision with the player 2 paddle. */
-    if (collision_type == 3) {
+    /*if (collision_type == 3) {
         if (ball_y >= player2_y && ball_y <= player2_y + paddle_height/2) {
             rotate_ball_vector_counter_clockwise(75);
         }
         if (ball_y < player2_y && ball_y >= player2_y - paddle_height/2) {
             rotate_ball_vector_clockwise(75);
         }
-    }
+    }*/
+    
     
     /*
     else {                                            // Else statement to handle the case when something unforeseen happens.
@@ -226,24 +302,20 @@ void handle_collision(int collision_type) {
  * Move the ball one step along its velocity vector and handle potential collisions.
  */
 void move_ball() {
-    if(fast_ball) {
-        ball_dx += 0.1; // Increase the ball velocity along the x-axis.
-        ball_dy += 0.1; // Increase the ball velocity along the y-axis.
-    }
     ball_x += ball_dx;  // Move the ball along the x-axis by its corresonding motion vector.
     ball_y += ball_dy;  // Move the ball along the y-axis by its corresonding motion vector.
 
-    if(ball_y == 0 || ball_y == screen_height) handle_collision(1);                                                                                          // Case when ball collides with the upper or lower wall.
-    if(ball_x == player_position && (ball_y <= player1_y + paddle_height/2 && ball_y >= player1_y - paddle_height/2)) handle_collision(2);                   // Case when the ball collides with player 1's paddle.
-    if(ball_x == screen_width - player_position && (ball_y <= player2_y + paddle_height/2 && ball_y >= player2_y - paddle_height/2)) handle_collision(3);    // Case when the ball collides with player 2's paddle.
+    if(ball_y <= 0 || ball_y >= screen_height) handle_collision(1);                                                                                          // Case when ball collides with the upper or lower wall.
+    if(ball_x <= player_position + player_width && (ball_y <= player1_y + paddle_height/2 && ball_y >= player1_y - paddle_height/2)) handle_collision(2);                   // Case when the ball collides with player 1's paddle.
+    if(ball_x >= screen_width - player_position - player_width && (ball_y <= player2_y + paddle_height/2 && ball_y >= player2_y - paddle_height/2)) handle_collision(3);    // Case when the ball collides with player 2's paddle.
     
-    if(ball_x == 0) {                       // Case if player 2 scores.
+    if(ball_x <= 0) {                       // Case if player 2 scores.
         increment_score(2);                 // Increment the score of player 2.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
         ball_x = screen_width/2;            // Reset the ball position.
         ball_y = screen_height/2;
-    } else if (ball_x == screen_width) {    // Case if player 1 scores.
+    } else if (ball_x >= screen_width) {    // Case if player 1 scores.
         increment_score(1);                 // Increment the score of player 1.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
@@ -384,7 +456,7 @@ void set_special_game_modes () {
     }
 
     if (get_digit(switchValues, 4)) {   // If switch 5 is active, PRECISION-PONG.
-        paddle_height = 2;
+        paddle_height = 4;
     } else {
         paddle_height = initial_paddle_height;
     }
