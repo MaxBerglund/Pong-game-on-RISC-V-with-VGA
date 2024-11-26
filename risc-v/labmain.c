@@ -57,7 +57,7 @@ extern int seconds;
 extern int minutes;
 
 int timeoutCount = 0;
-int five_seconds = 0;
+int two_seconds = 0;
 
 /* VGA variables */
 volatile char *VGA = (volatile char*) 0x08000000;       // Write pixels to the screen
@@ -159,11 +159,27 @@ void draw_diagonal_line(int x1, int y1, int x2, int y2) {
 void update_timer() {
     //rotate_ball_vector_counter_clockwise(45);
     
-    five_seconds++;
-    if(fast_ball && five_seconds >= 5) {    // If the special game_mode FAST-BALL is active, increase the ball speed each 5 seconds.
-        five_seconds = 0;                   // Reset the five-second status.
-        ball_dx += 1;                       // Increase the ball velocity along the x-axis.
-        ball_dy += 1;                       // Increase the ball velocity along the y-axis.
+    two_seconds++;
+    if(fast_ball && two_seconds >= 2) { // If the special game_mode FAST-BALL is active, increase the ball speed each 2 seconds.
+        two_seconds = 0;                // Reset the five-second status.
+        if(ball_dx > 0) {
+            if(ball_dx != 0) {
+                ball_dx += 1;           // Increase the ball velocity along the x-axis.
+            }
+        } else {
+            if(ball_dx != 0) {
+                ball_dx -= 1;           // Increase the ball velocity along the x-axis.
+            }
+        }
+        if(ball_dy > 0) {
+            if(ball_dy != 0) {
+                ball_dy += 1;           // Increase the ball velocity along the y-axis.
+            }
+        } else {
+            if(ball_dy != 0) {
+                ball_dy -= 1;           // Increase the ball velocity along the x-axis.
+            }
+        }
     }
 
     timeoutCount = 0;
@@ -173,10 +189,10 @@ void update_timer() {
     } else {
         seconds++;
     }
-    seven_segment_display(2, seconds % 10); // Send the ones digit of the seconds to the third 7-segment display.
-    seven_segment_display(3, seconds / 10); // Send the tens digit of the seconds to the fourth 7-segment display.
-    seven_segment_display(4, minutes % 10); // Send the ones digit of the minutes to the fifth 7-segment display.
-    seven_segment_display(5, minutes / 10); // Send the tens digit of the minutes to the sixth 7-segment display.
+    seven_segment_display(2, seconds % 10);     // Send the ones digit of the seconds to the third 7-segment display.
+    seven_segment_display(3, seconds / 10);     // Send the tens digit of the seconds to the fourth 7-segment display.
+    seven_segment_display(4, minutes % 10);     // Send the ones digit of the minutes to the fifth 7-segment display.
+    seven_segment_display(5, minutes / 10);     // Send the tens digit of the minutes to the sixth 7-segment display.
 }
 
 

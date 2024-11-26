@@ -192,6 +192,7 @@ void rotate_ball_vector_counter_clockwise(int degrees) {
         ball_dy = old_ball_dx;          // Calculate the y-vector after rotation.
     }
 
+    /* Is the following needed? */
     if(ball_dx == 0 && ball_dy == 0) {  // Case to handle when the ball becomes stationary after too many cosecutive rotations.
         ball_dx = old_ball_dx; 
         ball_dy = -old_ball_dy;
@@ -219,43 +220,71 @@ void rotate_ball_vector_clockwise(int degrees) {
  * Parameter: Collision_type indicates what type of collision happened. 1 for upper or lower walls. 2 for bounce on player 1. 3 for bounce on player 2. For any other integer, do nothing.
  */
 void handle_collision(int collision_type) {
-    if (ball_dy == 0) {                                 // Case to handle when the ball is moving in a straight line along the x-axis.
-        ball_dx = -ball_dx;                             // Immediately rotate the ball vector 180 degrees.
-    } else if (ball_dx == 0) {                          // Case to handle when the ball is moving in a straight line along the y-axis.
-            rotate_ball_vector_clockwise(5);
-    } else if (ball_dy >= 0) {                          // Case to handle when the move is moving upwards.
-        if(collision_type == 1) {                       // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
-        } else {
-            rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
+    
+    /*
+    if(collision_type == 1 || collision_type == 2) {
+        ball_dx = -ball_dx;
+    }
+    */
+    
+    if (collision_type == 1) {
+        if(ball_dx == 0) {                                      // Special case to handle when the ball is not travelling along the x-axis at all.
+            ball_dy = -ball_dy;
+            rotate_ball_vector_clockwise(45);
+        } else if(ball_y >= screen_height/2 && ball_dx > 0) {    // Case to handle when the ball collided with the lower wall and is travelling towards player 2.
+            rotate_ball_vector_counter_clockwise(90);
+        } else if(ball_y >= screen_height/2 && ball_dx < 0) {    // Case to handle when the ball collided with the lower wall and is travelling towards player 1.
+            rotate_ball_vector_clockwise(90);
+        } else if(ball_y <= screen_height/2 && ball_dx > 0) {    // Case to handle when the ball collided with the upper wall and is travelling towards player 2.
+            rotate_ball_vector_counter_clockwise(90);
+        } else if(ball_y <= screen_height/2 && ball_dx < 0) {    // Case to handle when the ball collided with the upper wall and is travelling towards player 1.
+            rotate_ball_vector_clockwise(90);
         }
-    } else if (ball_dy <= 0) {                          // Case to handle when the move is moving downwards.
-        if(collision_type == 1) {                       // Case to handle when the ball collided with the upper or lower wall.
-            rotate_ball_vector_clockwise(90);           // Rotate 90 degrees clockwise.
-        } else {
-            rotate_ball_vector_counter_clockwise(90);   // Rotate 90 degrees counter-clockwise.
+    }
+
+    if (collision_type == 2 || collision_type == 3) {
+        ball_dx = -ball_dx;
+
+        if(ball_dy == 0) {
+            if(ball_x > screen_width/2) {
+                rotate_ball_vector_clockwise(45);
+            } else {
+                rotate_ball_vector_counter_clockwise(45);
+            }
         }
-    } 
+    }
+
+
+    /*
+        if(ball_dy > 0) {                                       // Case to handle when the ball is moving downwards.
+            if (ball_y >= player1_y + paddle_height / 4) {      // Case to handle when the ball collided with the upper quarter of the paddle.
+                ball_dx = -ball_dx;
+                rotate_ball_vector_clockwise(75);
+            }
+        }
+    */
 
     /* Code for handling collision with the player 1 paddle. */
-    if (collision_type == 2) {
-        if (ball_y >= player1_y && ball_y <= player1_y + paddle_height/2) {
+    /*if (collision_type == 2) {
+        if (ball_y >= player1_y + paddle_height / 2) {
+            ball_dx = -ball_dx;
             rotate_ball_vector_clockwise(75);
         }
         if (ball_y < player1_y && ball_y >= player1_y - paddle_height/2) {
             rotate_ball_vector_counter_clockwise(75);
         }
-    }
+    }*/
     
     /* Code for handling collision with the player 2 paddle. */
-    if (collision_type == 3) {
+    /*if (collision_type == 3) {
         if (ball_y >= player2_y && ball_y <= player2_y + paddle_height/2) {
             rotate_ball_vector_counter_clockwise(75);
         }
         if (ball_y < player2_y && ball_y >= player2_y - paddle_height/2) {
             rotate_ball_vector_clockwise(75);
         }
-    }
+    }*/
+    
     
     /*
     else {                                            // Else statement to handle the case when something unforeseen happens.
@@ -280,13 +309,13 @@ void move_ball() {
     if(ball_x <= player_position + player_width && (ball_y <= player1_y + paddle_height/2 && ball_y >= player1_y - paddle_height/2)) handle_collision(2);                   // Case when the ball collides with player 1's paddle.
     if(ball_x >= screen_width - player_position - player_width && (ball_y <= player2_y + paddle_height/2 && ball_y >= player2_y - paddle_height/2)) handle_collision(3);    // Case when the ball collides with player 2's paddle.
     
-    if(ball_x == 0) {                       // Case if player 2 scores.
+    if(ball_x <= 0) {                       // Case if player 2 scores.
         increment_score(2);                 // Increment the score of player 2.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
         ball_x = screen_width/2;            // Reset the ball position.
         ball_y = screen_height/2;
-    } else if (ball_x == screen_width) {    // Case if player 1 scores.
+    } else if (ball_x >= screen_width) {    // Case if player 1 scores.
         increment_score(1);                 // Increment the score of player 1.
         ball_dx = initial_ball_velocity;    // Reset the ball velocity.
         ball_dy = 0;
