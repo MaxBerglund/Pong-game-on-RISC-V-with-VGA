@@ -12,6 +12,7 @@
 #define initial_ball_velocity -3
 #define initial_ball_size 7
 #define initial_paddle_height 25
+#define initial_paddle_width 5
 #define player_velocity 5
 #define PI 3.14159
 

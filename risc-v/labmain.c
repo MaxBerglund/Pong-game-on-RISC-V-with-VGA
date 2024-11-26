@@ -10,6 +10,7 @@ extern void enable_interrupt(void);
 #define initial_ball_velocity -3
 #define initial_ball_size 7
 #define initial_paddle_heigth 25
+#define initial_paddle_width 5
 #define player_velocity 5
 #define PI 3.14159
 
@@ -101,7 +102,7 @@ void draw_ball (){
 void draw_paddle1(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = 0; x < initial_paddle_heigth; x++) {
+        for (int x = 0; x < initial_paddle_width; x++) {
             int px = player_position + x;
             int py = player1_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
