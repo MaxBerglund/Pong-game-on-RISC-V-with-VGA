@@ -7,5 +7,9 @@ This repository contains a two-player Pong game written in C-code which can be r
 # Implementation
 [TO BE ADDED]
 
+
 # How to run
 [TO BE ADDED]
+
+Our version of the Pong game requires a Dtek RISC-V board and an external screen to operate. To load the code to the board the files, where the code is found, must be compiled by using the 'make' statement in the virtual UTM. Thereafter you must run the binary main file 'main.bin' by writing 'dtekv-run main.bin', the game will show up on the screen.
+
