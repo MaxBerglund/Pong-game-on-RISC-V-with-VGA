@@ -108,12 +108,13 @@ void draw_paddle1(){
 /**
  * Draws the paddle of player 2 on the screen.
  */
+
 void draw_paddle2(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = screen_width - initial_paddle_width; x < screen_width; x++) {
-            int px = player_position;
-            int py = player2_y + paddle_height/2 +  y;
+        for (int x = screen_width - player_position - initial_paddle_width; x < screen_width-player_position; x++) {
+            int px = player_position + x;
+            int py = player2_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_heigth) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }
@@ -122,30 +123,29 @@ void draw_paddle2(){
 }
 
 
-
-void draw_diagonal_line(int x1, int y1, int x2, int y2) {
-    int dx = abs(x2 - x1), dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;  // Step for x
-    int sy = (y1 < y2) ? 1 : -1;  // Step for y
-    int err = dx - dy;
-
-    while (1) {
-        // Ensure the pixel is within the screen boundaries
-        if (x1 >= 0 && x1 < screen_width && y1 >= 0 && y1 < screen_heigth) {
-            VGA[y1 * screen_width + x1] = 0xFF0000FF;  // Red pixel (0xRRGGBBAA)
+void draw_diagonal_line_ltr() {
+    for (int y = 100; y < screen_heigth -99; y++) {
+        for (int x = 50; x < screen_width; x++) {
+            int px = x;
+            int py = y;
+            if (x==y) {
+                VGA[py * screen_width + px + 35] = 0xFF; // White pixel
+            }
         }
-
-        // Break if the end point is reached
-        if (x1 == x2 && y1 == y2) break;
-
-        // Update the error term and coordinates
-        int e2 = 2 * err;
-        if (e2 > -dy) { err -= dy; x1 += sx; }
-        if (e2 < dx) { err += dx; y1 += sy; }
     }
 }
 
-//OVAN ÄR ETT TEST
+void draw_diagonal_line_rtl() {
+    for (int y = screen_heigth-100; y > 99; y--) {
+        for (int x = screen_width - 100; x > 0; x--) {
+            int px = x;
+            int py = y;
+            if (y==screen_heigth-x) {
+                VGA[py * screen_width + px + 35] = 0xFF; // White pixel
+            }
+        }
+    }
+}
 
 
 int main() {
@@ -181,14 +181,18 @@ int main() {
                 // TODO "Print game_over, player 1 wins!"...
                 game_state = 0;
 
-                //draw_diagonal_line();
+                draw_diagonal_line_ltr();
+
+                draw_diagonal_line_rtl();
             }
 
             if (player2_score >= 5) {
                 // TODO "Print game_over, player 2 wins!"...
                 game_state = 0;
+                
+                draw_diagonal_line_ltr();
 
-                //draw_diagonal_line();
+                draw_diagonal_line_rtl();
             }
         }
 
