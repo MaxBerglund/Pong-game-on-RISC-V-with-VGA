@@ -114,7 +114,6 @@ void draw_paddle1(){
 /**
  * Draws the paddle of player 2 on the screen.
  */
-
 void draw_paddle2(){
 
     for (int y = 0; y < paddle_height; y++) {
@@ -127,7 +126,6 @@ void draw_paddle2(){
         }
     }
 }
-
 
 void draw_diagonal_line_ltr() {
     for (int y = 100; y < screen_heigth -99; y++) {
@@ -152,8 +150,6 @@ void draw_diagonal_line_rtl() {
         }
     }
 }
-*/
-//OVAN ÄR ETT TEST
 
 /**
  * Updates the seconds and minutes values and sends them to the 7-segment displays.
@@ -236,26 +232,19 @@ int main() {
                     // TODO "Print game_over, player 1 wins!"...
                     game_state = 0;
 
-                    //draw_diagonal_line();
+                    draw_diagonal_line_ltr();
+
+                    draw_diagonal_line_rtl();
                 }
-                draw_diagonal_line_ltr();
-
-                draw_diagonal_line_rtl();
-            }
-
+                
                 if (player2_score >= 5) {
                     // TODO "Print game_over, player 2 wins!"...
                     game_state = 0;
-
-                    //draw_diagonal_line();
+                    
+                    draw_diagonal_line_ltr();
+    
+                    draw_diagonal_line_rtl();
                 }
-            if (player2_score >= 5) {
-                // TODO "Print game_over, player 2 wins!"...
-                game_state = 0;
-                
-                draw_diagonal_line_ltr();
-
-                draw_diagonal_line_rtl();
             }
         }
 
