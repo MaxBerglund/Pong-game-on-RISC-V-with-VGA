@@ -1,3 +1,10 @@
+/* 
+    labmain.c
+    By Milla Gradin.
+    Last modified: 2024-11-26
+    This file is in the public domain.
+*/
+
 #include <stdint.h> 
 #include <stdlib.h>
 
@@ -10,7 +17,6 @@ extern void enable_interrupt(void);
 #define initial_ball_velocity -5
 #define initial_ball_size 5
 #define initial_paddle_height 30
-#define initial_paddle_width 5
 #define player_velocity 10
 #define PI 3.14159
 
@@ -73,18 +79,6 @@ void reset_screen(){
 
 }
 
-void ball_clear(){
-    for (int y = 0; y < ball_size; y++) {
-        for (int x = 0; x < ball_size; x++) {
-            int px = ball_x + x;
-            int py = ball_y + y;
-            if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
-                VGA[py * screen_width + px] = 0xFF; // Black pixel
-            }
-        }
-    }
-}
-
 /**
  * Draws the ball on the screen.
  */
@@ -97,10 +91,8 @@ void draw_ball (){
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }
-
-        } ball_clear();
+        } 
     }
-
 }
 
 /**
@@ -109,7 +101,7 @@ void draw_ball (){
 void draw_paddle1(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = 0; x < initial_paddle_width; x++) {
+        for (int x = 0; x < player_width; x++) {
             int px = player_position + x;
             int py = player1_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
@@ -125,7 +117,7 @@ void draw_paddle1(){
 void draw_paddle2(){
 
     for (int y = 0; y < paddle_height; y++) {
-        for (int x = screen_width - player_position - initial_paddle_width; x < screen_width-player_position; x++) {
+        for (int x = screen_width - player_position * (float)1.5 - player_width; x < screen_width - player_position * (float)1.5; x++) { // Float of 1.5 included to make the graphics better looking. With the float, the ball bounces right at the border of the paddle.
             int px = player_position + x;
             int py = player2_y - paddle_height / 2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
@@ -135,6 +127,9 @@ void draw_paddle2(){
     }
 }
 
+/**
+ * Draws a diagonal line from left to right on the screen.
+ */
 void draw_diagonal_line_ltr() {
     for (int y = 100; y < screen_height -99; y++) {
         for (int x = 50; x < screen_width; x++) {
@@ -147,6 +142,9 @@ void draw_diagonal_line_ltr() {
     }
 }
 
+/**
+ * Draws a diagonal line from right to left on the screen.
+ */
 void draw_diagonal_line_rtl() {
     for (int y = screen_height-100; y > 99; y--) {
         for (int x = screen_width - 100; x > 0; x--) {
@@ -159,19 +157,20 @@ void draw_diagonal_line_rtl() {
     }
 }
 
+/**
+ * Makes the whole screen green.
+ */
 void green_screen() {
     for (int i = 0; i < screen_width * screen_height; i++) {
-            VGA[i] = 49;//0x811331;
+            VGA[i] = 49;
         }
 }
 
 /**
  * Updates the seconds and minutes values and sends them to the 7-segment displays.
  */
-void update_timer() {
-    //rotate_ball_vector_counter_clockwise(45);
-    
-    two_seconds++;
+void update_timer() {    
+    two_seconds++;                      // Used to keep track of when two-seconds have passed.
     if(fast_ball && two_seconds >= 2) { // If the special game_mode FAST-BALL is active, increase the ball speed each 2 seconds.
         two_seconds = 0;                // Reset the five-second status.
         if(ball_dx > 0) {
@@ -194,12 +193,12 @@ void update_timer() {
         }
     }
 
-    timeoutCount = 0;
-    if(seconds >= 59) {             
-        minutes++;
-        seconds = 0;
+    timeoutCount = 0;                   // Reset the timeout count.
+    if(seconds >= 59) {
+        minutes++;                      // Increment minutes if the seconds have reached 59.
+        seconds = 0;                    // Reset the seconds.
     } else {
-        seconds++;
+        seconds++;                      // Else increment seconds.
     }
     seven_segment_display(2, seconds % 10);     // Send the ones digit of the seconds to the third 7-segment display.
     seven_segment_display(3, seconds / 10);     // Send the tens digit of the seconds to the fourth 7-segment display.
@@ -242,34 +241,20 @@ int main() {
 
                 draw_paddle2();                 // Set the pixels where the player 2 paddle is to white.
 
-                if (player1_score >= 5) {
+                if (player1_score >= 5 || player2_score >= 5) {       // Conditional statement if player 1 wins.
 
-                    game_state = 0;
+                    game_state = 0;             // Set the game_state to 0. GAME OVER.
 
-                    green_screen();
+                    green_screen();             // Make the entire screen green.
 
-                    draw_diagonal_line_ltr();
+                    draw_diagonal_line_ltr();   // Draw the diagonal line from left to right as part of the cross.
 
-                    draw_diagonal_line_rtl();
-                }
-                
-                if (player2_score >= 5) {
-
-                    game_state = 0;
-
-                    green_screen();
-
-                    draw_diagonal_line_ltr();
-
-                    draw_diagonal_line_rtl();
+                    draw_diagonal_line_rtl();   // Draw the diagonal line from right to left as part of the cross.
                 }
             }
         }
-
-        // Update VGA control registers (double-buffering simulation)
-        // Updates the screen
+        /* Update VGA control registers (double-buffering simulation) and updates the screen. */
         *(VGA_CTRL + 1) = (unsigned int)(VGA);
         *(VGA_CTRL + 0) = 0;
     }
-    
 }
