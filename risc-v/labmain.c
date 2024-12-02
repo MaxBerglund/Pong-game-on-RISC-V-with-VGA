@@ -86,8 +86,8 @@ void draw_ball (){
 
     for (int y = 0; y < ball_size; y++) {
         for (int x = 0; x < ball_size; x++) {
-            int px = ball_x + x;
-            int py = ball_y + y;
+            int px = ball_x - ball_size/2 + x;
+            int py = ball_y - ball_size/2 + y;
             if (px >= 0 && px < screen_width && py >= 0 && py < screen_height) {
                 VGA[py * screen_width + px] = 0xFF; // White pixel
             }

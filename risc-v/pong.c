@@ -192,20 +192,20 @@ void move_ball() {
     ball_y += ball_dy;  // Move the ball along the y-axis by its corresonding motion vector.
 
     /* Case when ball collides with the upper or lower wall. */
-    if(ball_y <= 0 || ball_y >= screen_height) ball_dy = -ball_dy;
+    if(ball_y - ball_size/2 <= 0 || ball_y + ball_size/2 >= screen_height) ball_dy = -ball_dy;
 
     /* Case when the ball collides with player 1's paddle. */
-    if(ball_x <= player_position + player_width && (ball_y <= player1_y + paddle_height/2 && ball_y >= player1_y - paddle_height/2)) {
+    if(ball_x - ball_size/2 <= player_position + player_width && (ball_y - ball_size/2 <= player1_y + paddle_height/2 && ball_y + ball_size/2 >= player1_y - paddle_height/2)) {
         ball_dx = -ball_dx;
         if(ball_dy == 0) rotate_ball_vector_counter_clockwise(45);  // If the ball is moving in a straigth line towards the paddle, then we need to give it angle to make it more interesting.
-        ball_x = player_position + player_width + 1;
+        ball_x = player_position + player_width + ball_size;
     }
 
     /* Case when the ball collides with player 2's paddle. */
-    if(ball_x >= screen_width - player_position - player_width && (ball_y <= player2_y + paddle_height/2 && ball_y >= player2_y - paddle_height/2)) {
+    if(ball_x + ball_size/2 >= screen_width - player_position - player_width && (ball_y - ball_size/2 <= player2_y + paddle_height/2 && ball_y + ball_size/2 >= player2_y - paddle_height/2)) {
         ball_dx = -ball_dx;
         if(ball_dy == 0) rotate_ball_vector_counter_clockwise(45);  // If the ball is moving in a straigth line towards the paddle, then we need to give it angle to make it more interesting.
-        ball_x = screen_width - player_position - player_width - 1;
+        ball_x = screen_width - player_position - player_width - ball_size;
     }
 
     /* Case if player 2 scores. Resets the ball. */
@@ -221,6 +221,7 @@ void move_ball() {
         ball_dx = initial_ball_velocity;
         ball_dy = 0;
         ball_x = screen_width/2;
+        ball_y = screen_height/2;
     }
 }
 
