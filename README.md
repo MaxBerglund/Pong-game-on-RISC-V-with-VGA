@@ -17,3 +17,14 @@ The graphical display implementation uses the builtin VGA features of the RISC-V
 # How to run
 Our version of the Pong game requires a Dtek RISC-V board and an external screen with a VGA input to operate. To load the code to the board, the code must first be compiled by using the 'make' statement in the repository where the files are located. Thereafter you must run the binary file 'main.bin' using the dtekv-tools by writing 'dtekv-run .../.../main.bin', and the game will show up on the screen.
 
+# Game controls
+The leftmost switch is used to move player 1 downwards, while the switch next to it is used to move the player upwards. If both of the switches have the same state, the player remains stationary. Same applies for player 2 but with the two rightmost switches.
+
+The push-button is used to reset the game. The score of each players is displayed on the two rightmost 7-segment displays during the game. When one player reaches the score of 5, they win the game. The elapsed time is displayed on the four leftmost 7-segment displays.
+
+Special game modes. 
+  a.	REVERSE-PADDLES 1: When the 3rd switch is active, the controls of player 1 are reversed. This is used by player 2 to sabotage the game for their opponent.
+  b.	REVERSE-PADDLES 2: When the 8th switch is active, the controls of player 2 are reversed. This is used by player 1 to sabotage the game for their opponent.
+  c.	MEGA-BALL: When the 4th switch is active, the ball becomes very large.
+  d.	PRECISION-PONG: When the 5th switch is active, the paddles become very small.
+  e.	FAST-BALL: When the 6th switch is active, the ball accelerates over time instead of moving at constant velocity.
